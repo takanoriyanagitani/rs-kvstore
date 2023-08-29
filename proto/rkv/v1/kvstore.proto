@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package rkv.v1;
+
+import "google/protobuf/timestamp.proto";
+
+message Uuid {
+  fixed64 hi = 1;
+  fixed64 lo = 2;
+}
+
+message Bucket {
+  string b = 1;
+}
+
+message Key {
+  bytes k = 1;
+}
+
+message Val {
+  bytes v = 1;
+}
+
+message GetRequest {
+  Uuid request_id = 1;
+  Bucket bucket = 2;
+  Key key = 3;
+}
+
+message GetResponse {
+  Val val = 1;
+  google.protobuf.Timestamp got = 2;
+}
+
+message SetRequest {
+  Uuid request_id = 1;
+  Bucket bucket = 2;
+  Key key = 3;
+  Val val = 4;
+}
+
+message SetResponse {
+  google.protobuf.Timestamp set = 1;
+}
+
+service KeyValService {
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Set(SetRequest) returns (SetResponse);
+}
