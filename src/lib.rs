@@ -4,4 +4,6 @@ pub mod rpc {
 
 pub mod uuid;
 
+pub mod bucket;
+
 pub mod external;
