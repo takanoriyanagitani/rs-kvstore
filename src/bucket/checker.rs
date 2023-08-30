@@ -44,6 +44,10 @@ pub fn uuid_checker_new_simple(prefix: String) -> impl Checker {
     uuid_checker_new(uuid_check_simple, prefix)
 }
 
+pub fn nop_checker() -> impl Checker {
+    checker_new(Ok)
+}
+
 #[cfg(test)]
 mod test_checker {
 

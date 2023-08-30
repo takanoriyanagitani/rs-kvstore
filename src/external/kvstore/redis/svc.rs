@@ -5,16 +5,19 @@ use tonic::{Request, Response, Status};
 use redis::aio::ConnectionManager;
 use redis::{AsyncCommands, Client};
 
-use crate::uuid::Uuid;
+use crate::bucket::checker::Checker;
+use crate::cmd::get::GetReq;
+use crate::cmd::set::SetReq;
 
 use crate::rpc::key_val_service_server::KeyValService;
-use crate::rpc::{GetRequest, GetResponse, Key, SetRequest, SetResponse, Val};
+use crate::rpc::{GetRequest, GetResponse, SetRequest, SetResponse, Val};
 
-pub struct Svc {
+pub struct Svc<C> {
     connection: ConnectionManager,
+    checker: C,
 }
 
-impl Svc {
+impl<C> Svc<C> {
     pub async fn get_raw(&self, key: &[u8]) -> Result<Vec<u8>, Status> {
         let mut c: ConnectionManager = self.connection.clone();
         c.get(key)
@@ -31,18 +34,14 @@ impl Svc {
 }
 
 #[tonic::async_trait]
-impl KeyValService for Svc {
+impl<C> KeyValService for Svc<C>
+where
+    C: Send + Sync + 'static + Checker,
+{
     async fn get(&self, req: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
         let gr: GetRequest = req.into_inner();
-        let request_id: Uuid = gr
-            .request_id
-            .as_ref()
-            .map(Uuid::from)
-            .ok_or_else(|| Status::invalid_argument("request id missing"))?;
-        let key: Key = gr.key.ok_or_else(|| {
-            Status::invalid_argument(format!("key missing. request id: {request_id}"))
-        })?;
-        let raw: &[u8] = &key.k;
+        let checked: GetReq = GetReq::new(gr, &self.checker)?;
+        let raw: &[u8] = checked.as_key_bytes();
 
         let val: Vec<u8> = self.get_raw(raw).await?;
         let got: SystemTime = SystemTime::now();
@@ -57,17 +56,8 @@ impl KeyValService for Svc {
 
     async fn set(&self, req: Request<SetRequest>) -> Result<Response<SetResponse>, Status> {
         let sr: SetRequest = req.into_inner();
-        let request_id: Uuid = sr
-            .request_id
-            .as_ref()
-            .map(Uuid::from)
-            .ok_or_else(|| Status::invalid_argument("request id missing"))?;
-        let key: Key = sr.key.ok_or_else(|| {
-            Status::invalid_argument(format!("key missing. request id: {request_id}"))
-        })?;
-        let val: Val = sr.val.ok_or_else(|| {
-            Status::invalid_argument(format!("val missing. request id: {request_id}"))
-        })?;
+        let checked: SetReq = SetReq::new(sr, &self.checker)?;
+        let (key, val) = checked.into_kv();
 
         self.set_raw(key.k, val.v).await?;
         let set: SystemTime = SystemTime::now();
@@ -79,18 +69,30 @@ impl KeyValService for Svc {
     }
 }
 
-pub fn key_val_svc_from_manager(connection: ConnectionManager) -> impl KeyValService {
-    Svc { connection }
+pub fn key_val_svc_from_manager<C>(connection: ConnectionManager, checker: C) -> impl KeyValService
+where
+    C: Send + Sync + 'static + Checker,
+{
+    Svc {
+        connection,
+        checker,
+    }
 }
 
-pub async fn key_val_svc_from_client(c: Client) -> Result<impl KeyValService, String> {
+pub async fn key_val_svc_from_client<C>(c: Client, checker: C) -> Result<impl KeyValService, String>
+where
+    C: Send + Sync + 'static + Checker,
+{
     let connection: ConnectionManager = ConnectionManager::new(c)
         .await
         .map_err(|e| format!("Unable to create a connection manager: {e}"))?;
-    Ok(key_val_svc_from_manager(connection))
+    Ok(key_val_svc_from_manager(connection, checker))
 }
 
-pub async fn key_val_svc_new(conn_str: &str) -> Result<impl KeyValService, String> {
+pub async fn key_val_svc_new<C>(conn_str: &str, checker: C) -> Result<impl KeyValService, String>
+where
+    C: Send + Sync + 'static + Checker,
+{
     let client: Client = Client::open(conn_str).map_err(|e| format!("Unable to open: {e}"))?;
-    key_val_svc_from_client(client).await
+    key_val_svc_from_client(client, checker).await
 }

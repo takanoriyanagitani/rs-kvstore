@@ -91,4 +91,5 @@ kvredis = [
 ]
 
 default = [
+	"kvredis",
 ]
