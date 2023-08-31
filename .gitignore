@@ -13,3 +13,4 @@ Cargo.lock
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 *.swp
+examples/external/redis/helo/test.d/rkv/v1/__pycache__
