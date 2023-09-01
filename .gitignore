@@ -14,3 +14,5 @@ Cargo.lock
 *.pdb
 *.swp
 examples/external/redis/helo/test.d/rkv/v1/__pycache__
+gitignore-old
+git-old
