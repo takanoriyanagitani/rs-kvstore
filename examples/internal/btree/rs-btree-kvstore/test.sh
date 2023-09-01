@@ -42,5 +42,25 @@ bget(){
 		rkv.v1.KeyValService/Get
 }
 
+bexists(){
+	echo '{}' |
+	jq -c '{
+		request_id: {
+			hi: 20230901,
+			lo: 90834,
+		},
+		bucket: { b: "earth" },
+		key: { k: "helo" },
+	}' |
+	grpcurl \
+		-plaintext \
+		-d @ \
+		-import-path "${protodir}" \
+		-proto rkv/v1/kvstore.proto \
+		"${listen_addr}" \
+		rkv.v1.KeyValService/Exists
+}
+
 bset
+bexists
 bget

@@ -4,12 +4,16 @@ use std::time::SystemTime;
 use tonic::{Request, Response, Status};
 
 use crate::bucket::checker::Checker;
+
+use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::set::SetReq;
 
 use crate::internal::kv::KeyValue;
 
-use crate::rpc::{GetRequest, GetResponse, SetRequest, SetResponse, Val};
+use crate::rpc::{
+    ExistsRequest, ExistsResponse, GetRequest, GetResponse, SetRequest, SetResponse, Val,
+};
 
 pub struct BTree<C> {
     checker: C,
@@ -34,6 +38,15 @@ where
             val: Some(v),
             got: Some(got).map(|s| s.into()),
         };
+        Ok(Response::new(reply))
+    }
+
+    fn exists(&self, req: Request<ExistsRequest>) -> Result<Response<ExistsResponse>, Status> {
+        let er: ExistsRequest = req.into_inner();
+        let checked: ExistsReq = ExistsReq::new(er, &self.checker)?;
+        let key_bytes: &[u8] = checked.as_key_bytes();
+        let found: bool = self.m.contains_key(key_bytes);
+        let reply: ExistsResponse = ExistsResponse { found };
         Ok(Response::new(reply))
     }
 

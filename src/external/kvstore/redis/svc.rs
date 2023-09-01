@@ -6,11 +6,14 @@ use redis::aio::ConnectionManager;
 use redis::{AsyncCommands, Client};
 
 use crate::bucket::checker::Checker;
+use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::set::SetReq;
 
 use crate::rpc::key_val_service_server::KeyValService;
-use crate::rpc::{GetRequest, GetResponse, SetRequest, SetResponse, Val};
+use crate::rpc::{
+    ExistsRequest, ExistsResponse, GetRequest, GetResponse, SetRequest, SetResponse, Val,
+};
 
 pub struct Svc<C> {
     connection: ConnectionManager,
@@ -23,6 +26,13 @@ impl<C> Svc<C> {
         c.get(key)
             .await
             .map_err(|e| Status::internal(format!("Unable to get a val: {e}")))
+    }
+
+    pub async fn exists_raw(&self, key: &[u8]) -> Result<bool, Status> {
+        let mut c: ConnectionManager = self.connection.clone();
+        c.exists(key)
+            .await
+            .map_err(|e| Status::internal(format!("Unable to check a key: {e}")))
     }
 
     pub async fn set_raw(&self, key: Vec<u8>, val: Vec<u8>) -> Result<(), Status> {
@@ -65,6 +75,19 @@ where
         let reply: SetResponse = SetResponse {
             set: Some(set).map(|s| s.into()),
         };
+        Ok(Response::new(reply))
+    }
+
+    async fn exists(
+        &self,
+        req: Request<ExistsRequest>,
+    ) -> Result<Response<ExistsResponse>, Status> {
+        let er: ExistsRequest = req.into_inner();
+        let checked: ExistsReq = ExistsReq::new(er, &self.checker)?;
+        let raw: &[u8] = checked.as_key_bytes();
+
+        let found: bool = self.exists_raw(raw).await?;
+        let reply: ExistsResponse = ExistsResponse { found };
         Ok(Response::new(reply))
     }
 }

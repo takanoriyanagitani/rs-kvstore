@@ -43,7 +43,19 @@ message SetResponse {
   google.protobuf.Timestamp set = 1;
 }
 
+message ExistsRequest {
+  Uuid request_id = 1;
+  Bucket bucket = 2;
+  Key key = 3;
+}
+
+message ExistsResponse {
+  bool found = 1;
+}
+
 service KeyValService {
   rpc Get(GetRequest) returns (GetResponse);
+  rpc Exists(ExistsRequest) returns (ExistsResponse);
+
   rpc Set(SetRequest) returns (SetResponse);
 }

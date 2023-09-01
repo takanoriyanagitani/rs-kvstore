@@ -6,13 +6,16 @@ use crate::bucket::bkt::Bucket;
 use crate::bucket::checker::Checker;
 use crate::bucket::prefix::BucketAsPrefix;
 
+use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::set::SetReq;
 
 use crate::rpc::key_val_service_server::KeyValService;
-use crate::rpc::{GetRequest, GetResponse, Key, SetRequest, SetResponse};
+use crate::rpc::{
+    ExistsRequest, ExistsResponse, GetRequest, GetResponse, Key, SetRequest, SetResponse,
+};
 
-struct SimpleKvSvc<P, K, C> {
+pub struct SimpleKvSvc<P, K, C> {
     virtual_bucket: P,
     simple: K,
     checker: C,
@@ -60,6 +63,27 @@ where
             val: Some(val),
         };
         self.simple.set(Request::new(sreq)).await
+    }
+
+    async fn exists(
+        &self,
+        req: Request<ExistsRequest>,
+    ) -> Result<Response<ExistsResponse>, Status> {
+        let er: ExistsRequest = req.into_inner();
+        let checked: ExistsReq = ExistsReq::new(er, &self.checker)?;
+
+        let reqid: Uuid = checked.as_request();
+
+        let bkt: &Bucket = checked.as_bucket();
+        let key: &Key = checked.as_key();
+        let neo: Key = self.virtual_bucket.key_with_bucket(bkt, key)?;
+
+        let sreq: ExistsRequest = ExistsRequest {
+            request_id: Some(reqid).map(|u| u.into()),
+            bucket: Some(Bucket::default()).map(|b| b.into()),
+            key: Some(neo),
+        };
+        self.simple.exists(Request::new(sreq)).await
     }
 }
 
