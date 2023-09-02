@@ -61,6 +61,27 @@ bexists(){
 		rkv.v1.KeyValService/Exists
 }
 
+binsert(){
+	echo '{}' |
+	jq -c '{
+		request_id: {
+			hi: 20230903,
+			lo: 61715,
+		},
+		bucket: { b: "earth" },
+		key: { k: "helo" },
+		val: { v: "wrld" },
+	}' |
+	grpcurl \
+		-plaintext \
+		-d @ \
+		-import-path "${protodir}" \
+		-proto rkv/v1/kvstore.proto \
+		"${listen_addr}" \
+		rkv.v1.KeyValService/Insert
+}
+
 bset
 bexists
 bget
+binsert

@@ -43,6 +43,17 @@ message SetResponse {
   google.protobuf.Timestamp set = 1;
 }
 
+message InsertRequest {
+  Uuid request_id = 1;
+  Bucket bucket = 2;
+  Key key = 3;
+  Val val = 4;
+}
+
+message InsertResponse {
+  google.protobuf.Timestamp inserted = 1;
+}
+
 message ExistsRequest {
   Uuid request_id = 1;
   Bucket bucket = 2;
@@ -58,4 +69,5 @@ service KeyValService {
   rpc Exists(ExistsRequest) returns (ExistsResponse);
 
   rpc Set(SetRequest) returns (SetResponse);
+  rpc Insert(InsertRequest) returns (InsertResponse);
 }

@@ -7,12 +7,14 @@ use crate::bucket::checker::Checker;
 
 use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
+use crate::cmd::insert::InsertReq;
 use crate::cmd::set::SetReq;
 
 use crate::internal::kv::KeyValue;
 
 use crate::rpc::{
-    ExistsRequest, ExistsResponse, GetRequest, GetResponse, SetRequest, SetResponse, Val,
+    ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest, InsertResponse,
+    SetRequest, SetResponse, Val,
 };
 
 pub struct BTree<C> {
@@ -61,6 +63,24 @@ where
             set: Some(SystemTime::now()).map(|s| s.into()),
         };
         Ok(Response::new(reply))
+    }
+
+    fn insert(&mut self, req: Request<InsertRequest>) -> Result<Response<InsertResponse>, Status> {
+        let ir: InsertRequest = req.into_inner();
+        let checked: InsertReq = InsertReq::new(ir, &self.checker)?;
+        let (key, val) = checked.into_kv();
+        let k: Vec<u8> = key.k;
+        let v: Vec<u8> = val.v;
+        match self.m.insert(k.clone(), v) {
+            None => Ok(InsertResponse {
+                inserted: Some(SystemTime::now()).map(|s| s.into()),
+            })
+            .map(Response::new),
+            Some(overwritten) => {
+                self.m.insert(k, overwritten);
+                Err(Status::failed_precondition("the key already used"))
+            }
+        }
     }
 }
 

@@ -8,11 +8,13 @@ use crate::bucket::prefix::BucketAsPrefix;
 
 use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
+use crate::cmd::insert::InsertReq;
 use crate::cmd::set::SetReq;
 
 use crate::rpc::key_val_service_server::KeyValService;
 use crate::rpc::{
-    ExistsRequest, ExistsResponse, GetRequest, GetResponse, Key, SetRequest, SetResponse,
+    ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest, InsertResponse, Key,
+    SetRequest, SetResponse,
 };
 
 pub struct SimpleKvSvc<P, K, C> {
@@ -63,6 +65,28 @@ where
             val: Some(val),
         };
         self.simple.set(Request::new(sreq)).await
+    }
+
+    async fn insert(
+        &self,
+        req: Request<InsertRequest>,
+    ) -> Result<Response<InsertResponse>, Status> {
+        let ir: InsertRequest = req.into_inner();
+        let checked: InsertReq = InsertReq::new(ir, &self.checker)?;
+
+        let reqid: Uuid = checked.as_request();
+        let bkt: &Bucket = checked.as_bucket();
+        let key: &Key = checked.as_key();
+        let neo: Key = self.virtual_bucket.key_with_bucket(bkt, key)?;
+        let (_, val) = checked.into_kv();
+
+        let sreq: InsertRequest = InsertRequest {
+            request_id: Some(reqid).map(|u| u.into()),
+            bucket: Some(Bucket::default()).map(|b| b.into()),
+            key: Some(neo),
+            val: Some(val),
+        };
+        self.simple.insert(Request::new(sreq)).await
     }
 
     async fn exists(

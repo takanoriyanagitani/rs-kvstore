@@ -8,11 +8,13 @@ use redis::{AsyncCommands, Client};
 use crate::bucket::checker::Checker;
 use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
+use crate::cmd::insert::InsertReq;
 use crate::cmd::set::SetReq;
 
 use crate::rpc::key_val_service_server::KeyValService;
 use crate::rpc::{
-    ExistsRequest, ExistsResponse, GetRequest, GetResponse, SetRequest, SetResponse, Val,
+    ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest, InsertResponse,
+    SetRequest, SetResponse, Val,
 };
 
 pub struct Svc<C> {
@@ -76,6 +78,33 @@ where
             set: Some(set).map(|s| s.into()),
         };
         Ok(Response::new(reply))
+    }
+
+    /// Warn: this emulates "insert" using "exists" and "set"(TOCTOU)
+    ///
+    /// 1. Checks if a key is already used or not
+    /// 2. Reject the key if it is already used(TOC)
+    /// 3. Set the key/val pair if it is not used(TOU)
+    async fn insert(
+        &self,
+        req: Request<InsertRequest>,
+    ) -> Result<Response<InsertResponse>, Status> {
+        let ir: InsertRequest = req.into_inner();
+        let checked: InsertReq = InsertReq::new(ir, &self.checker)?;
+        let (key, val) = checked.into_kv();
+        let raw: &[u8] = &key.k;
+        let found: bool = self.exists_raw(raw).await?;
+        match found {
+            true => Err(Status::failed_precondition("the key already used")),
+            false => {
+                self.set_raw(key.k, val.v).await?;
+
+                let reply: InsertResponse = InsertResponse {
+                    inserted: Some(SystemTime::now()).map(|s| s.into()),
+                };
+                Ok(Response::new(reply))
+            }
+        }
     }
 
     async fn exists(

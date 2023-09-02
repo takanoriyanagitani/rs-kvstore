@@ -3,7 +3,10 @@ use std::sync::{Arc, RwLock};
 use tonic::{Request, Response, Status};
 
 use crate::rpc::key_val_service_server::KeyValService;
-use crate::rpc::{ExistsRequest, ExistsResponse, GetRequest, GetResponse, SetRequest, SetResponse};
+use crate::rpc::{
+    ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest, InsertResponse,
+    SetRequest, SetResponse,
+};
 
 use crate::internal::kv::KeyValue;
 
@@ -54,6 +57,10 @@ where
     pub fn set(&self, req: Request<SetRequest>) -> Result<Response<SetResponse>, Status> {
         self.write(|mk: &mut K| mk.set(req))
     }
+
+    pub fn insert(&self, req: Request<InsertRequest>) -> Result<Response<InsertResponse>, Status> {
+        self.write(|mk: &mut K| mk.insert(req))
+    }
 }
 
 #[tonic::async_trait]
@@ -67,6 +74,13 @@ where
 
     async fn set(&self, req: Request<SetRequest>) -> Result<Response<SetResponse>, Status> {
         self.set(req)
+    }
+
+    async fn insert(
+        &self,
+        req: Request<InsertRequest>,
+    ) -> Result<Response<InsertResponse>, Status> {
+        self.insert(req)
     }
 
     async fn exists(
