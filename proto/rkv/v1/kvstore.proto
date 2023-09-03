@@ -68,6 +68,9 @@ service KeyValService {
   rpc Get(GetRequest) returns (GetResponse);
   rpc Exists(ExistsRequest) returns (ExistsResponse);
 
+  // Set must accept overwrite
   rpc Set(SetRequest) returns (SetResponse);
+
+  // Insert must reject overwrite
   rpc Insert(InsertRequest) returns (InsertResponse);
 }
