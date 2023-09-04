@@ -26,6 +26,29 @@ rget(){
 		rkv.v1.KeyValService/Get
 }
 
+rdel(){
+	echo '{}' |
+	jq -c '{
+		bucket: {
+			b: "earth",
+		},
+		request_id: {
+			hi: 20230829,
+			lo: 110138,
+		},
+		key: {
+			k: "aGVs",
+		},
+	}' |
+	grpcurl \
+		-plaintext \
+		-d @ \
+		-import-path "${protodir}" \
+		-proto rkv/v1/kvstore.proto \
+		"${svc}" \
+		rkv.v1.KeyValService/Del
+}
+
 rset_earth(){
 	echo '{}' |
 	jq -c '{
@@ -81,3 +104,6 @@ rset_moon(){
 rset_earth
 rset_moon
 rget
+rdel
+rget
+rdel

@@ -1,8 +1,8 @@
 use tonic::{Request, Response, Status};
 
 use crate::rpc::{
-    ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest, InsertResponse,
-    SetRequest, SetResponse,
+    DelRequest, DelResponse, ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest,
+    InsertResponse, SetRequest, SetResponse,
 };
 
 pub trait KeyValue {
@@ -10,5 +10,6 @@ pub trait KeyValue {
     fn exists(&self, req: Request<ExistsRequest>) -> Result<Response<ExistsResponse>, Status>;
 
     fn set(&mut self, req: Request<SetRequest>) -> Result<Response<SetResponse>, Status>;
+    fn del(&mut self, req: Request<DelRequest>) -> Result<Response<DelResponse>, Status>;
     fn insert(&mut self, req: Request<InsertRequest>) -> Result<Response<InsertResponse>, Status>;
 }

@@ -5,6 +5,7 @@ use tonic::{Request, Response, Status};
 
 use crate::bucket::checker::Checker;
 
+use crate::cmd::del::DelReq;
 use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::insert::InsertReq;
@@ -13,8 +14,8 @@ use crate::cmd::set::SetReq;
 use crate::internal::kv::KeyValue;
 
 use crate::rpc::{
-    ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest, InsertResponse,
-    SetRequest, SetResponse, Val,
+    del_response, DelRequest, DelResponse, ExistsRequest, ExistsResponse, GetRequest, GetResponse,
+    InsertRequest, InsertResponse, SetRequest, SetResponse, Val,
 };
 
 pub struct BTree<C> {
@@ -61,6 +62,24 @@ where
         self.m.insert(k, v);
         let reply: SetResponse = SetResponse {
             set: Some(SystemTime::now()).map(|s| s.into()),
+        };
+        Ok(Response::new(reply))
+    }
+
+    fn del(&mut self, req: Request<DelRequest>) -> Result<Response<DelResponse>, Status> {
+        let sr: DelRequest = req.into_inner();
+        let checked: DelReq = DelReq::new(sr, &self.checker)?;
+        let key = checked.into_key();
+        let k: Vec<u8> = key.k;
+        let reply: DelResponse = match self.m.remove(&k) {
+            None => DelResponse {
+                status: Some(del_response::Status::Absent(())),
+            },
+            Some(_) => DelResponse {
+                status: Some(SystemTime::now())
+                    .map(|st| st.into())
+                    .map(del_response::Status::Removed),
+            },
         };
         Ok(Response::new(reply))
     }

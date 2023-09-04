@@ -6,6 +6,7 @@ use crate::bucket::bkt::Bucket;
 use crate::bucket::checker::Checker;
 use crate::bucket::prefix::BucketAsPrefix;
 
+use crate::cmd::del::DelReq;
 use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::insert::InsertReq;
@@ -13,8 +14,8 @@ use crate::cmd::set::SetReq;
 
 use crate::rpc::key_val_service_server::KeyValService;
 use crate::rpc::{
-    ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest, InsertResponse, Key,
-    SetRequest, SetResponse,
+    DelRequest, DelResponse, ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest,
+    InsertResponse, Key, SetRequest, SetResponse,
 };
 
 pub struct SimpleKvSvc<P, K, C> {
@@ -65,6 +66,23 @@ where
             val: Some(val),
         };
         self.simple.set(Request::new(sreq)).await
+    }
+
+    async fn del(&self, req: Request<DelRequest>) -> Result<Response<DelResponse>, Status> {
+        let sr: DelRequest = req.into_inner();
+        let checked: DelReq = DelReq::new(sr, &self.checker)?;
+
+        let reqid: Uuid = checked.as_request();
+        let bkt: &Bucket = checked.as_bucket();
+        let key: &Key = checked.as_key();
+        let neo: Key = self.virtual_bucket.key_with_bucket(bkt, key)?;
+
+        let sreq: DelRequest = DelRequest {
+            request_id: Some(reqid).map(|u| u.into()),
+            bucket: Some(Bucket::default()).map(|b| b.into()),
+            key: Some(neo),
+        };
+        self.simple.del(Request::new(sreq)).await
     }
 
     async fn insert(

@@ -90,6 +90,11 @@ kvredis = [
   "socket2",
 ]
 
+locked = []
+bucket_svc = []
+
 default = [
 	"kvredis",
+	"locked",
+	"bucket_svc",
 ]

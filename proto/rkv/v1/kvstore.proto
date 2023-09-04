@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package rkv.v1;
 
+import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 message Uuid {
@@ -26,7 +27,6 @@ message GetRequest {
   Bucket bucket = 2;
   Key key = 3;
 }
-
 message GetResponse {
   Val val = 1;
   google.protobuf.Timestamp got = 2;
@@ -38,9 +38,20 @@ message SetRequest {
   Key key = 3;
   Val val = 4;
 }
-
 message SetResponse {
   google.protobuf.Timestamp set = 1;
+}
+
+message DelRequest {
+  Uuid request_id = 1;
+  Bucket bucket = 2;
+  Key key = 3;
+}
+message DelResponse {
+  oneof status {
+    google.protobuf.Timestamp removed = 1;
+    google.protobuf.Empty absent = 2;
+  }
 }
 
 message InsertRequest {
@@ -49,7 +60,6 @@ message InsertRequest {
   Key key = 3;
   Val val = 4;
 }
-
 message InsertResponse {
   google.protobuf.Timestamp inserted = 1;
 }
@@ -59,7 +69,6 @@ message ExistsRequest {
   Bucket bucket = 2;
   Key key = 3;
 }
-
 message ExistsResponse {
   bool found = 1;
 }
@@ -67,6 +76,8 @@ message ExistsResponse {
 service KeyValService {
   rpc Get(GetRequest) returns (GetResponse);
   rpc Exists(ExistsRequest) returns (ExistsResponse);
+
+  rpc Del(DelRequest) returns (DelResponse);
 
   // Set must accept overwrite
   rpc Set(SetRequest) returns (SetResponse);

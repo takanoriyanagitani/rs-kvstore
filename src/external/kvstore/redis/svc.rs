@@ -6,6 +6,7 @@ use redis::aio::ConnectionManager;
 use redis::{AsyncCommands, Client};
 
 use crate::bucket::checker::Checker;
+use crate::cmd::del::DelReq;
 use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::insert::InsertReq;
@@ -13,8 +14,8 @@ use crate::cmd::set::SetReq;
 
 use crate::rpc::key_val_service_server::KeyValService;
 use crate::rpc::{
-    ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest, InsertResponse,
-    SetRequest, SetResponse, Val,
+    del_response, DelRequest, DelResponse, ExistsRequest, ExistsResponse, GetRequest, GetResponse,
+    InsertRequest, InsertResponse, SetRequest, SetResponse, Val,
 };
 
 pub struct Svc<C> {
@@ -42,6 +43,13 @@ impl<C> Svc<C> {
         c.set(key, val)
             .await
             .map_err(|e| Status::internal(format!("Unable to set: {e}")))
+    }
+
+    pub async fn del_raw(&self, key: Vec<u8>) -> Result<u64, Status> {
+        let mut c: ConnectionManager = self.connection.clone();
+        c.del(key)
+            .await
+            .map_err(|e| Status::internal(format!("Unable to del: {e}")))
     }
 }
 
@@ -76,6 +84,25 @@ where
 
         let reply: SetResponse = SetResponse {
             set: Some(set).map(|s| s.into()),
+        };
+        Ok(Response::new(reply))
+    }
+
+    async fn del(&self, req: Request<DelRequest>) -> Result<Response<DelResponse>, Status> {
+        let sr: DelRequest = req.into_inner();
+        let checked: DelReq = DelReq::new(sr, &self.checker)?;
+        let key: Vec<u8> = checked.into_key().k;
+
+        let cnt: u64 = self.del_raw(key).await?;
+        let reply: DelResponse = match cnt {
+            0 => DelResponse {
+                status: Some(del_response::Status::Absent(())),
+            },
+            _ => DelResponse {
+                status: Some(SystemTime::now())
+                    .map(|s| s.into())
+                    .map(del_response::Status::Removed),
+            },
         };
         Ok(Response::new(reply))
     }
