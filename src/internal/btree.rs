@@ -10,12 +10,14 @@ use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::insert::InsertReq;
 use crate::cmd::set::SetReq;
+use crate::cmd::truncate::TruncateReq;
 
 use crate::internal::kv::KeyValue;
 
 use crate::rpc::{
-    del_response, DelRequest, DelResponse, ExistsRequest, ExistsResponse, GetRequest, GetResponse,
-    InsertRequest, InsertResponse, SetRequest, SetResponse, Val,
+    del_response, truncate_response, DelRequest, DelResponse, ExistsRequest, ExistsResponse,
+    GetRequest, GetResponse, InsertRequest, InsertResponse, SetRequest, SetResponse,
+    TruncateRequest, TruncateResponse, Val,
 };
 
 pub struct BTree<C> {
@@ -79,6 +81,27 @@ where
                 status: Some(SystemTime::now())
                     .map(|st| st.into())
                     .map(del_response::Status::Removed),
+            },
+        };
+        Ok(Response::new(reply))
+    }
+
+    fn truncate(
+        &mut self,
+        req: Request<TruncateRequest>,
+    ) -> Result<Response<TruncateResponse>, Status> {
+        let sr: TruncateRequest = req.into_inner();
+        TruncateReq::new(sr, &self.checker)?;
+        let empty: bool = self.m.is_empty();
+        self.m.clear();
+        let reply: TruncateResponse = match empty {
+            true => TruncateResponse {
+                status: Some(truncate_response::Status::Absent(())),
+            },
+            false => TruncateResponse {
+                status: Some(SystemTime::now())
+                    .map(|st| st.into())
+                    .map(truncate_response::Status::Truncated),
             },
         };
         Ok(Response::new(reply))

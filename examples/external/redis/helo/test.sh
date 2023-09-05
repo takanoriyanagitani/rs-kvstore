@@ -49,6 +49,26 @@ rdel(){
 		rkv.v1.KeyValService/Del
 }
 
+rtruncate(){
+	echo '{}' |
+	jq -c '{
+		bucket: {
+			b: "earth",
+		},
+		request_id: {
+			hi: 20230829,
+			lo: 110138,
+		},
+	}' |
+	grpcurl \
+		-plaintext \
+		-d @ \
+		-import-path "${protodir}" \
+		-proto rkv/v1/kvstore.proto \
+		"${svc}" \
+		rkv.v1.KeyValService/Truncate
+}
+
 rset_earth(){
 	echo '{}' |
 	jq -c '{
@@ -107,3 +127,5 @@ rget
 rdel
 rget
 rdel
+rset_earth
+rtruncate

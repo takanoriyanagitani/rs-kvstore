@@ -11,11 +11,12 @@ use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::insert::InsertReq;
 use crate::cmd::set::SetReq;
+use crate::cmd::truncate::TruncateReq;
 
 use crate::rpc::key_val_service_server::KeyValService;
 use crate::rpc::{
     DelRequest, DelResponse, ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest,
-    InsertResponse, Key, SetRequest, SetResponse,
+    InsertResponse, Key, SetRequest, SetResponse, TruncateRequest, TruncateResponse,
 };
 
 pub struct SimpleKvSvc<P, K, C> {
@@ -83,6 +84,22 @@ where
             key: Some(neo),
         };
         self.simple.del(Request::new(sreq)).await
+    }
+
+    async fn truncate(
+        &self,
+        req: Request<TruncateRequest>,
+    ) -> Result<Response<TruncateResponse>, Status> {
+        let sr: TruncateRequest = req.into_inner();
+        let checked: TruncateReq = TruncateReq::new(sr, &self.checker)?;
+
+        let reqid: Uuid = checked.as_request();
+
+        let sreq: TruncateRequest = TruncateRequest {
+            request_id: Some(reqid).map(|u| u.into()),
+            bucket: Some(Bucket::default()).map(|b| b.into()),
+        };
+        self.simple.truncate(Request::new(sreq)).await
     }
 
     async fn insert(
