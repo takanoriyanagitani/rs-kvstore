@@ -6,6 +6,7 @@ use tonic::{Request, Response, Status};
 use crate::bucket::checker::Checker;
 
 use crate::cmd::del::DelReq;
+use crate::cmd::drop::DropReq;
 use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::insert::InsertReq;
@@ -15,9 +16,9 @@ use crate::cmd::truncate::TruncateReq;
 use crate::internal::kv::KeyValue;
 
 use crate::rpc::{
-    del_response, truncate_response, DelRequest, DelResponse, ExistsRequest, ExistsResponse,
-    GetRequest, GetResponse, InsertRequest, InsertResponse, SetRequest, SetResponse,
-    TruncateRequest, TruncateResponse, Val,
+    del_response, drop_response, truncate_response, DelRequest, DelResponse, DropRequest,
+    DropResponse, ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest,
+    InsertResponse, SetRequest, SetResponse, TruncateRequest, TruncateResponse, Val,
 };
 
 pub struct BTree<C> {
@@ -102,6 +103,24 @@ where
                 status: Some(SystemTime::now())
                     .map(|st| st.into())
                     .map(truncate_response::Status::Truncated),
+            },
+        };
+        Ok(Response::new(reply))
+    }
+
+    fn drop(&mut self, req: Request<DropRequest>) -> Result<Response<DropResponse>, Status> {
+        let sr: DropRequest = req.into_inner();
+        DropReq::new(sr, &self.checker)?;
+        let empty: bool = self.m.is_empty();
+        self.m.clear();
+        let reply: DropResponse = match empty {
+            true => DropResponse {
+                status: Some(drop_response::Status::Absent(())),
+            },
+            false => DropResponse {
+                status: Some(SystemTime::now())
+                    .map(|st| st.into())
+                    .map(drop_response::Status::Dropped),
             },
         };
         Ok(Response::new(reply))

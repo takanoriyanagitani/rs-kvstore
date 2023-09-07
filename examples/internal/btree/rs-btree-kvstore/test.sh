@@ -79,6 +79,24 @@ btruncate(){
 		rkv.v1.KeyValService/Truncate
 }
 
+bdrop(){
+	echo '{}' |
+	jq -c '{
+		request_id: {
+			hi: 20230908,
+			lo: 85358,
+		},
+		bucket: { b: "earth" },
+	}' |
+	grpcurl \
+		-plaintext \
+		-d @ \
+		-import-path "${protodir}" \
+		-proto rkv/v1/kvstore.proto \
+		"${listen_addr}" \
+		rkv.v1.KeyValService/Drop
+}
+
 binsert(){
 	echo '{}' |
 	jq -c '{
@@ -104,3 +122,6 @@ bexists
 bget
 btruncate
 binsert
+bget
+bdrop
+bget

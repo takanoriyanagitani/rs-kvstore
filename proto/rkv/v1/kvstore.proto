@@ -65,6 +65,17 @@ message TruncateResponse {
   }
 }
 
+message DropRequest {
+  Uuid request_id = 1;
+  Bucket bucket = 2;
+}
+message DropResponse {
+  oneof status {
+    google.protobuf.Timestamp dropped = 1;
+    google.protobuf.Empty absent = 2;
+  }
+}
+
 message InsertRequest {
   Uuid request_id = 1;
   Bucket bucket = 2;
@@ -90,6 +101,7 @@ service KeyValService {
 
   rpc Del(DelRequest) returns (DelResponse);
   rpc Truncate(TruncateRequest) returns (TruncateResponse);
+  rpc Drop(DropRequest) returns (DropResponse);
 
   // Set must accept overwrite
   rpc Set(SetRequest) returns (SetResponse);

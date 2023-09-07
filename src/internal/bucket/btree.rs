@@ -54,6 +54,10 @@ where
             }
         }
     }
+
+    fn drop(&mut self, b: &Bucket) {
+        self.internal.remove(b);
+    }
 }
 
 pub fn kv_btree_new<K>() -> impl KeyValue

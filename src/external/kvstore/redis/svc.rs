@@ -14,8 +14,9 @@ use crate::cmd::set::SetReq;
 
 use crate::rpc::key_val_service_server::KeyValService;
 use crate::rpc::{
-    del_response, DelRequest, DelResponse, ExistsRequest, ExistsResponse, GetRequest, GetResponse,
-    InsertRequest, InsertResponse, SetRequest, SetResponse, TruncateRequest, TruncateResponse, Val,
+    del_response, DelRequest, DelResponse, DropRequest, DropResponse, ExistsRequest,
+    ExistsResponse, GetRequest, GetResponse, InsertRequest, InsertResponse, SetRequest,
+    SetResponse, TruncateRequest, TruncateResponse, Val,
 };
 
 pub struct Svc<C> {
@@ -114,6 +115,10 @@ where
         Err(Status::unimplemented(
             "no plan to truncate all keys for now",
         ))
+    }
+
+    async fn drop(&self, _req: Request<DropRequest>) -> Result<Response<DropResponse>, Status> {
+        Err(Status::unimplemented("no plan to drop a db for now"))
     }
 
     /// Warn: this emulates "insert" using "exists" and "set"(TOCTOU)

@@ -8,6 +8,7 @@ use crate::bucket::bkt::Bucket;
 use crate::internal::kv;
 
 use crate::cmd::del::DelReq;
+use crate::cmd::drop::DropReq;
 use crate::cmd::exists::ExistsReq;
 use crate::cmd::get::GetReq;
 use crate::cmd::insert::InsertReq;
@@ -15,9 +16,9 @@ use crate::cmd::set::SetReq;
 use crate::cmd::truncate::TruncateReq;
 
 use crate::rpc::{
-    del_response, truncate_response, DelRequest, DelResponse, ExistsRequest, ExistsResponse,
-    GetRequest, GetResponse, InsertRequest, InsertResponse, Key, SetRequest, SetResponse,
-    TruncateRequest, TruncateResponse, Val,
+    del_response, drop_response, truncate_response, DelRequest, DelResponse, DropRequest,
+    DropResponse, ExistsRequest, ExistsResponse, GetRequest, GetResponse, InsertRequest,
+    InsertResponse, Key, SetRequest, SetResponse, TruncateRequest, TruncateResponse, Val,
 };
 
 pub trait KeyValue {
@@ -29,6 +30,7 @@ pub trait KeyValue {
 
     fn del(&mut self, b: &Bucket, k: &Key) -> Option<Val>;
     fn truncate(&mut self, b: &Bucket);
+    fn drop(&mut self, b: &Bucket);
 
     fn ins(&mut self, b: Bucket, k: Key, v: Val) -> Result<(), String> {
         match self.set(b.clone(), k.clone(), v) {
@@ -63,6 +65,10 @@ impl KeyValue for BTreeMap<Vec<u8>, Val> {
     }
 
     fn truncate(&mut self, _: &Bucket) {
+        self.clear()
+    }
+
+    fn drop(&mut self, _: &Bucket) {
         self.clear()
     }
 }
@@ -144,6 +150,25 @@ where
                 status: Some(SystemTime::now())
                     .map(|st| st.into())
                     .map(truncate_response::Status::Truncated),
+            },
+        };
+        Ok(Response::new(reply))
+    }
+    fn drop(&mut self, req: Request<DropRequest>) -> Result<Response<DropResponse>, Status> {
+        let sr: DropRequest = req.into_inner();
+        let nocheck: DropReq = sr.try_into()?;
+        let b: &Bucket = nocheck.as_bucket();
+        let found: bool = self.exists(b);
+        let empty: bool = !found;
+        self.drop(b);
+        let reply: DropResponse = match empty {
+            true => DropResponse {
+                status: Some(drop_response::Status::Absent(())),
+            },
+            false => DropResponse {
+                status: Some(SystemTime::now())
+                    .map(|st| st.into())
+                    .map(drop_response::Status::Dropped),
             },
         };
         Ok(Response::new(reply))
