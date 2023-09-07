@@ -1,7 +1,7 @@
 use tonic::Status;
 
 use crate::bucket::bkt::Bucket;
-use crate::bucket::checker::Checker;
+use crate::bucket::checker::{Checker, NoChecker};
 use crate::uuid::Uuid;
 
 use crate::rpc::{DelRequest, Key};
@@ -61,5 +61,13 @@ impl DelReq {
 
     pub fn into_unpacked(self) -> (Bucket, Key) {
         (self.bucket, self.key)
+    }
+}
+
+impl TryFrom<DelRequest> for DelReq {
+    type Error = Status;
+    fn try_from(g: DelRequest) -> Result<Self, Self::Error> {
+        let nochk = NoChecker::default();
+        Self::new(g, &nochk)
     }
 }

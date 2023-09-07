@@ -1,7 +1,7 @@
 use tonic::Status;
 
 use crate::bucket::bkt::Bucket;
-use crate::bucket::checker::Checker;
+use crate::bucket::checker::{Checker, NoChecker};
 use crate::uuid::Uuid;
 
 use crate::rpc::TruncateRequest;
@@ -38,5 +38,13 @@ impl TruncateReq {
 
     pub fn as_bucket(&self) -> &Bucket {
         &self.bucket
+    }
+}
+
+impl TryFrom<TruncateRequest> for TruncateReq {
+    type Error = Status;
+    fn try_from(g: TruncateRequest) -> Result<Self, Self::Error> {
+        let nochk = NoChecker::default();
+        Self::new(g, &nochk)
     }
 }

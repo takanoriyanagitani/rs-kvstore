@@ -4,6 +4,14 @@ pub trait Checker {
     fn check(&self, unchecked: String) -> Result<String, Status>;
 }
 
+#[derive(Default)]
+pub struct NoChecker {}
+impl Checker for NoChecker {
+    fn check(&self, unchecked: String) -> Result<String, Status> {
+        Ok(unchecked)
+    }
+}
+
 struct CheckFn<F> {
     checker: F,
 }

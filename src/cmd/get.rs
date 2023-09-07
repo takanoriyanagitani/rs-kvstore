@@ -1,7 +1,7 @@
 use tonic::Status;
 
 use crate::bucket::bkt::Bucket;
-use crate::bucket::checker::Checker;
+use crate::bucket::checker::{Checker, NoChecker};
 use crate::uuid::Uuid;
 
 use crate::rpc::GetRequest;
@@ -54,5 +54,13 @@ impl GetReq {
 
     pub fn as_bucket(&self) -> &Bucket {
         &self.bucket
+    }
+}
+
+impl TryFrom<GetRequest> for GetReq {
+    type Error = Status;
+    fn try_from(g: GetRequest) -> Result<Self, Self::Error> {
+        let checker = NoChecker::default();
+        Self::new(g, &checker)
     }
 }

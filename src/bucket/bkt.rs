@@ -4,7 +4,7 @@ use crate::rpc;
 
 use crate::bucket::checker::Checker;
 
-#[derive(Default)]
+#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Default)]
 pub struct Bucket {
     checked: String,
 }

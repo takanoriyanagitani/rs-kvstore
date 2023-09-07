@@ -1,7 +1,7 @@
 use tonic::Status;
 
 use crate::bucket::bkt::Bucket;
-use crate::bucket::checker::Checker;
+use crate::bucket::checker::{Checker, NoChecker};
 use crate::uuid::Uuid;
 
 use crate::rpc::{InsertRequest, Key, Val};
@@ -66,5 +66,13 @@ impl InsertReq {
 
     pub fn into_unpacked(self) -> (Bucket, Key, Val) {
         (self.bucket, self.key, self.val)
+    }
+}
+
+impl TryFrom<InsertRequest> for InsertReq {
+    type Error = Status;
+    fn try_from(g: InsertRequest) -> Result<Self, Self::Error> {
+        let nochk = NoChecker::default();
+        Self::new(g, &nochk)
     }
 }

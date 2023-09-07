@@ -61,6 +61,24 @@ bexists(){
 		rkv.v1.KeyValService/Exists
 }
 
+btruncate(){
+	echo '{}' |
+	jq -c '{
+		request_id: {
+			hi: 20230901,
+			lo: 90834,
+		},
+		bucket: { b: "earth" },
+	}' |
+	grpcurl \
+		-plaintext \
+		-d @ \
+		-import-path "${protodir}" \
+		-proto rkv/v1/kvstore.proto \
+		"${listen_addr}" \
+		rkv.v1.KeyValService/Truncate
+}
+
 binsert(){
 	echo '{}' |
 	jq -c '{
@@ -84,4 +102,5 @@ binsert(){
 bset
 bexists
 bget
+btruncate
 binsert
