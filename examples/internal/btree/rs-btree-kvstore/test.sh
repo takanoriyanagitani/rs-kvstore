@@ -1,6 +1,7 @@
 #!/bin/sh
 
-listen_addr=127.0.0.1:9151
+listen_port=9151
+listen_addr=127.0.0.1:${listen_port}
 protodir=proto
 
 bset(){
@@ -125,3 +126,5 @@ binsert
 bget
 bdrop
 bget
+
+grpc-health-probe -addr=:${listen_port}
